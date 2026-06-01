@@ -30,8 +30,9 @@ async def get_css(html):
     css_url = urljoin(BSEA_URL, link_href)
     response = requests.get(url=css_url, headers=HEADERS)
 
-    # 正则：自动匹配所有 .cipher-xxx::before{content:"x"}
+    # 正则：匹配所有 .cipher-xxx::before{content:"x"}
     pattern = r'\.cipher-(\w+)::before\{content:"([^"]+)"\}'
+    selector = Selector(text=response.text)
     cipher_map = dict(re.findall(pattern, response.text))
     return cipher_map
 

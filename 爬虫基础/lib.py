@@ -10,11 +10,11 @@ def clean_text(value):
     return (value or '-').strip()
 
 # 安全转 float
-def to_float(value, default=0.0):
+def to_float(value):
     try:
         return float(value)
     except (ValueError, TypeError):
-        return default
+        return value
 
 
 def to_number(text):

@@ -6,7 +6,6 @@
 
 import subprocess
 import json
-import os
 from pathlib import Path
 
 def find_worker_script():
@@ -15,11 +14,11 @@ def find_worker_script():
     p1 = Path(__file__).parent / "ocr_worker.py"
     if p1.exists():
         return p1
-    # 2. 当前工作目录（可能是项目根目录）
+    # 2. 当前工作目录
     p2 = Path.cwd() / "ocr_worker.py"
     if p2.exists():
         return p2
-    # 3. 向上递归查找（最多3级），直到找到根目录标记（如 .git 或 requirements.txt）
+    # 3. 向上递归查找（最多3级），直到找到根目录标记
     for parent in Path(__file__).parents:
         p3 = parent / "ocr_worker.py"
         if p3.exists():

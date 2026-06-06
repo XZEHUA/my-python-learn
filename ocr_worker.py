@@ -10,9 +10,30 @@ import json
 import argparse
 from PIL import Image, ImageDraw, ImageFont
 from fontTools.ttLib import TTFont
-from paddleocr import PaddleOCR
 import numpy as np
+import io
+import warnings
 
+# 1. 抑制 PaddlePaddle 的 GLOG 日志（最有效）
+os.environ['GLOG_minloglevel'] = '2'      # 0=INFO,1=WARNING,2=ERROR,3=FATAL
+os.environ['FLAGS_logtostderr'] = '0'     # 不输出到 stderr
+
+# 2. 抑制 ccache 警告
+os.environ['CCACHE_DISABLE'] = '1'
+
+# 3. 抑制 PaddlePaddle 的 CUDNN 版本警告（如果确定版本匹配）
+os.environ['FLAGS_cudnn_deterministic'] = '1'
+
+# 4. 抑制 Python 的 UserWarning
+warnings.filterwarnings('ignore')
+
+# 5. 抑制 Paddle 内部的 C++ 日志（更彻底，但可能隐藏错误）
+# 注意：这需要放在 import paddle 之前
+os.environ['GLOG_minloglevel'] = '2'
+
+from paddleocr import PaddleOCR
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 def process_font(font_path, output_mapping_path, unresolved_dir):
     """

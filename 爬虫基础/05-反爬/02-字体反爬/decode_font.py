@@ -24,13 +24,19 @@ def build_mapping_with_ddddocr(font_path,storage_path=None):
     :param storage_path: 映射表 JSON 文件的保存目录路径（可选）
     :return: 生成的映射字典
     """
+    # 打开 WOFF2 文件
     font = TTFont(font_path)
+
+    # 保存为 TTF 格式
+    # font_filename =font_path.replace(".woff2", ".ttf")
+    # font.save(font_filename)
+
     cmap = font.getBestCmap()
     if not cmap:
         raise ValueError("字体文件中没有 cmap 表")
 
     draw_font = ImageFont.truetype(font_path, size=90)
-    ocr = ddddocr.DdddOcr(show_ad=False)
+    ocr = ddddocr.DdddOcr(beta=True)
     mapping = {}
 
     for codepoint, glyph_name in cmap.items():
@@ -107,6 +113,11 @@ def decrypt_text(mapping_path, encrypted_str):
     :param encrypted_str: 包含自定义字体的加密字符串
     :return: 解密后的正常文本
     """
+
+    # 兼容列表和字符串类型：如果传入的是列表，先将其拼接成一个完整的字符串
+    if isinstance(encrypted_str, list):
+        encrypted_str = ''.join(encrypted_str)
+
     if not encrypted_str:
         return ""
     # 逐个字符替换（因为映射表可能只覆盖部分字符）
@@ -116,7 +127,7 @@ def decrypt_text(mapping_path, encrypted_str):
         # 逐个字符替换
 
         for ch in encrypted_str:
-            hex_key = f"0x{ord(ch):04X}"
+            hex_key = f"0x{ord(ch):04x}"
             real_char = mapping.get(hex_key, ch)
             result.append(real_char)
         return ''.join(result)

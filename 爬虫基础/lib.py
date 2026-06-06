@@ -5,6 +5,10 @@
 # @Desc:
 
 
+headers = {
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+}
+
 # 清理文本
 def clean_text(value):
     return (value or '-').strip()

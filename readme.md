@@ -27,6 +27,75 @@
 * 第三方依赖：PaddleOCR
 * 推荐使用虚拟环境（conda/venv）隔离环境
 
+#### 环境要求
+
+| 脚本                         | Python 版本 | 必需依赖                                                                                              |
+| -------------------------- | --------- | ------------------------------------------------------------------------------------------------- |
+| `18-千机变.py`                | 3.13      | `requests`, `parsel`, `asyncio`                                                                   |
+| **`ocr_worker.py` (GPU版)** | 3.10      | `paddlepaddle-gpu`, `paddleocr`, `Pillow`, `fontTools`, `numpy`<br>**及 NVIDIA GPU 驱动、CUDA、cuDNN** |
+| `resolve_unresolved.py`    | 3.6+      | 无（仅标准库）                                                                                           |
+
+> **注意**：PaddleOCR 暂不支持 Python 3.13，因此必须隔离环境。以下指南以 GPU 加速为例，若无需 GPU 可跳过 CUDA/cuDNN 部分。
+
+#### 安装与配置
+
+##### 1. 前置准备 (GPU 加速必须)
+
+在开始前，请确保系统满足以下条件：
+
+- **NVIDIA 显卡**：需要一块支持 CUDA 的 NVIDIA 显卡
+
+- **显卡驱动**：请从 NVIDIA 官网下载并安装适用于您显卡型号的最新驱动程序
+
+- **Visual Studio (MSVC)**：部分依赖需要 C++ 编译环境。建议安装 Visual Studio 2019 或 2022，或仅安装 Visual C++ Build Tools
+
+- **CUDA 与 cuDNN**：PaddlePaddle 需要特定版本的 CUDA 和 cuDNN。推荐安装 **CUDA 11.8** 和 **cuDNN 8.9
+  
+  - `CUDA Toolkit` 可从 NVIDIA 官网下载安装[]
+  
+  - `cuDNN` 需登录 NVIDIA 开发者账号后从官网下载，并按官方指南将文件复制到 CUDA 安装目录
+  
+  - **版本对应关系**：请务必严格遵照对应版本的安装说明。
+
+- **注意**：对于 **NVIDIA 50 系列显卡**的 Windows 用户，标准 PaddlePaddle 包可能不兼容，需要安装官方提供专门适配的安装包
+
+#### 2. 创建 Python 3.10 环境（用于 OCR）
+
+```bash
+# 创建并激活 conda 环境
+conda create -n paddle_gpu python=3.10
+conda activate paddle_gpu
+
+# 选择对应你 CUDA 版本的 paddlepaddle-gpu 进行安装（此处以 CUDA 11.8 为例）
+# 具体版本请参考 PaddlePaddle 官网
+pip install paddlepaddle-gpu==3.0.0 -i https://www.paddlepaddle.org.cn/packages/stable/cu118/
+
+# 验证 GPU 环境是否安装成功
+python -c "import paddle; print(paddle.is_compiled_with_cuda())"
+# 若输出 True，则说明 GPU 环境配置成功
+
+# 安装 PaddleOCR 及相关依赖
+pip install paddleocr Pillow fontTools numpy
+```
+
+#### 3. 创建 Python 3.13 环境（用于爬虫）
+
+```bash
+conda create -n crawler python=3.13
+conda activate crawler
+pip install requests parsel
+```
+
+#### 4. 配置爬虫中的 Python 3.10 解释器路径
+
+打开 `18-千机变.py`，修改 `PY310_PATH` 为你的实际路径：
+
+```python
+PY310_PATH = r"D:\Miniconda3\envs\paddle_gpu\python.exe"    # paddle_gpu 环境中的 python.exe
+```
+
+
+
 * * *
 
 三、脚本功能与参数说明
@@ -41,48 +110,96 @@
 * 置信度 ≥ 0.99：自动保存为**确定映射表**（JSON）
 * 置信度 < 0.99 / 未识别：保存为**未确定记录**（图片 + JSON），用于人工复核
 
-#### 参数说明
+#### 使用示例
 
-表格
+##### 方式一：全自动爬虫（推荐）
 
-| 参数名              | 必需  | 类型  | 说明                            |
-| ---------------- | --- | --- | ----------------------------- |
-| --font_path      | 是   | 字符串 | 字体文件路径（支持 .ttf/.woff2/.otf 等） |
-| --mapping_path   | 是   | 字符串 | 确定字符映射表输出路径（JSON 格式）          |
-| --unresolved_dir | 是   | 字符串 | 未确定字符保存目录（程序自动创建）             |
+直接运行爬虫主程序，它会自动：
 
-#### 输出文件
+1. 遍历章节目录
+
+2. 下载每个章节对应的字体文件
+
+3. 若映射表不存在，则自动调用 `ocr_worker.py`（通过 `subprocess` 在 Python 3.10 环境中运行）
+
+4. 使用生成的映射表解密章节内容
+
+5. 输出解密后的文本
+
+```bash
+conda activate crawler
+python 18-千机变.py
+```
+
+> 运行时，控制台会同时显示爬虫日志和 OCR 处理进度（来自 Python 3.10 子进程）。
+
+##### 方式二：手动 OCR 处理单个字体文件
+
+如果你只想单独处理一个字体文件，不运行爬虫，可以在终端直接调用 `ocr_worker.py`：
+
+```bash
+conda activate paddle_gpu
+python ocr_worker.py --font_path ./fonts/example.woff2 \
+                     --mapping_path ./fonts/example.mapping.json \
+                     --unresolved_dir ./fonts/example_unresolved
+```
+
+参数说明：
+
+| 参数                 | 必填  | 说明                       |
+| ------------------ | --- | ------------------------ |
+| `--font_path`      | 是   | 字体文件路径（.ttf/.woff2/.otf） |
+| `--mapping_path`   | 是   | 输出映射表 JSON 路径            |
+| `--unresolved_dir` | 是   | 未确定字符保存目录（自动创建）          |
+
+输出文件：
+
+* `{mapping_path}`：确定字符映射表（置信度 ≥ 0.99），格式 `{"0x4e00": "一", ...}`
+
+* `{unresolved_dir}/unresolved.json`：未确定字符信息
+
+* `{unresolved_dir}/*.png`：每个未确定字符的渲染图片
+
+文件格式：
 
 1. `{mapping_path}`：确定映射表，格式：
-
-```json
-{ 
-    "0x4e00": "一",
-     "0x4e8c": "丁"
- }
-```
+   
+   ```json
+    {
+    "0x4e00": "一",
+     "0x4e8c": "丁"
+    }
+   ```
+   
+   
 
 2. `{unresolved_dir}/unresolved.json`：未确定字符信息，格式：
-
-```json
-{
-  "0x4e00": {
-    "name": "uni4E00",
-    "recognized": "",
-    "score": 0.45
-  }
-}
-```
+   
+   ```json
+    { 
+    "0x4e00": {
+        "name": "uni4E00",
+        "recognized": "",
+        "score": 0.45
+        }
+    }
+   ```
 
 3. `{unresolved_dir}/*.png`：未确定字符渲染图片（文件名 = Unicode 码点，如 `0x4e00.png`）
 
-#### 使用示例
+工作原理：
 
-```bash
-python ocr_worker.py --font_path ./fonts/example.woff2 --mapping_path ./output/determined_mapping.json --unresolved_dir ./output/unresolved
+```mermaid
+graph LR
+    A[爬虫下载字体] --> B{映射表存在?}
+    B -- 否 --> C[subprocess调用 Python 3.10]
+    C --> D[ocr_worker.py OCR识别]
+    D --> E[生成 mapping.json + unresolved]
+    B -- 是 --> F[直接使用 mapping.json]
+    E --> F
+    F --> G[decrypt_text 解密]
+    G --> H[保存/打印章节内容]
 ```
-
-* * *
 
 ### 2. resolve_unresolved.py
 
@@ -218,13 +335,35 @@ pip install paddleocr
 
 **解决**：调整 `ocr_worker.py` 中渲染参数：字体大小、图片尺寸、文字绘制坐标。
 
+### Q5：运行时提示 `FileNotFoundError: ocr_worker.py`
 
-### Q5：确认识别错误
+**解决**：请将 `ocr_worker.py` 放在与 `18-千机变.py` 相同的目录，或修改 `WORKER_SCRIPT` 的绝对路径
 
-表格
+### Q6：解密后仍然是乱码（私有区字符）
 
-| 真实字符 | 识别字符 | 
-|-----|-----| 
-| ’   | ，   | 
-| ”   | “   | 
-| ‘   | 6   | 
+**解决**：可能原因：
+
+* 映射表与加密文本中的私有区码点不匹配（字体文件版本不一致）。
+
+* 未确定字符尚未人工修正。  
+  
+  解决办法：运行 `resolve_unresolved.py` 合并手动修正的字符，或检查 `ocr_worker.py` 中提取 cmap 的方式（尝试使用 `font['cmap'].getcmap(3, 1).cmap`）。
+
+### Q7：OCR 处理很慢，能否加速？
+
+**解决**：确保使用 GPU（已在 `ocr_worker.py` 中设置 `device="gpu:0"`）。若只有 CPU，可降低 `text_det_limit_side_len` 等参数，或减少字体渲染尺寸（`size=120`）。
+
+### Q8：确认识别错误
+
+> 请注意中文字符`'`的正反区别
+
+| 真实字符 | 识别字符 |
+| ---- | ---- |
+| ‘    | ，    |
+| ”    | “    |
+| ‘    | 6    |
+
+许可证
+---
+
+本项目仅用于学习和研究，请勿用于非法用途。

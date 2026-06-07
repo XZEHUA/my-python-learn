@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Author: 谢泽华
 # @Date: 2026/6/6 19:15
-# @Desc:
+# @Desc: 修改未确认目录后合并映射表
 
 """
 resolve_unresolved.py
@@ -15,7 +15,8 @@ resolve_unresolved.py
     2. 遍历每个未确定字符条目，如果 "recognized" 字段不为空字符串，则将其作为正确识别结果。
     3. 将这些条目的码点及 recognized 值添加到 determined_mapping.json 中（已有条目会被覆盖或保留最新）。
     4. 从 unresolved.json 中删除已解决的条目。
-    5. 保存更新后的 determined_mapping.json 和 unresolved.json。
+    5. 保存更新后的 determined_mapping.json 。
+    5. 删除 unresolved.json。
 """
 
 import json
@@ -62,9 +63,8 @@ def merge_resolved(unresolved_dir, mapping_path):
     with open(mapping_path, 'w', encoding='utf-8') as f:
         json.dump(determined, f, ensure_ascii=False, indent=2)
 
-    # 保存更新后的 unresolved.json（移除已解决的条目）
-    with open(unresolved_json, 'w', encoding='utf-8') as f:
-        json.dump(remaining, f, ensure_ascii=False, indent=2)
+        # 删除 unresolved.json（合并成功后删除）
+        os.remove(unresolved_json)
 
     print(f"成功合并 {len(resolved_items)} 个字符到 {mapping_path}")
     print(f"未确定字符剩余数量: {len(remaining)}")
@@ -77,13 +77,20 @@ def merge_resolved(unresolved_dir, mapping_path):
 
 
 def main():
+    # 终端命令调用
     parser = argparse.ArgumentParser(description="将未确定字符中手动确认的部分合并到确定字符映射表")
     parser.add_argument("--unresolved_dir", required=True, help="未确定字符保存目录（包含 unresolved.json）")
     parser.add_argument("--mapping_path", required=True, help="确定字符映射表文件路径 (JSON)")
     args = parser.parse_args()
 
+
     merge_resolved(args.unresolved_dir, args.mapping_path)
 
+    # python 调用
+    # unresolved_dir = r"E:\crawler\爬虫基础\05-反爬\02-字体反爬\fonts2\bda3e83a04e6_unresolved"
+    # mapping_path = r"E:\crawler\爬虫基础\05-反爬\02-字体反爬\fonts2\bda3e83a04e6.mapping.json"
+    #
+    # merge_resolved(unresolved_dir, mapping_path)
 
 if __name__ == "__main__":
     main()

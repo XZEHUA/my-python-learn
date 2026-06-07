@@ -3,16 +3,16 @@
 # @Author: 谢泽华
 # @Date: 2026/6/5 18:15
 # @Desc: 动态字体反爬 - 集成PaddleOCR (Python 3.10) 调用
-import json
+
 import os
-import subprocess
 import requests
 import asyncio
 from urllib.parse import urljoin
 from parsel import Selector
-import decode_font
+from font_ddddocr import process_font_with_ddddocr
 import json
 from hashlib import md5
+from 爬虫基础.lib import decrypt_text
 
 # 基础配置
 BASE_URL = "https://tc.xfei.tech/playground/dynamic-font-map-novel/ZW820AdXaiYF_5VN09s/zh/"
@@ -26,7 +26,7 @@ PY310_PYTHON = r"D:\Miniconda3\envs\paddle_gpu\python.exe"
 WORKER_SCRIPT = os.path.join(os.path.dirname(__file__), r"E:\crawler\ocr_worker.py")
 
 # 缓存目录
-FONT_DIR = "./fonts"
+FONT_DIR = "./fonts2"
 os.makedirs(FONT_DIR, exist_ok=True)
 
 
@@ -90,38 +90,6 @@ def download_font(font_url):
     return file_path, filename
 
 
-def build_mapping_with_paddleocr(font_path, mapping_path, unresolved_dir):
-    """调用 Python 3.10 环境中的 ocr_worker.py 生成映射表"""
-    # 确保必要的脚本存在
-    if not os.path.exists(PY310_PYTHON):
-        raise FileNotFoundError(f"Python 3.10 解释器不存在: {PY310_PYTHON}")
-    if not os.path.exists(WORKER_SCRIPT):
-        raise FileNotFoundError(f"ocr_worker.py 脚本不存在: {WORKER_SCRIPT}")
-
-    cmd = [
-        PY310_PYTHON,
-        WORKER_SCRIPT,
-        "--font_path", font_path,
-        "--mapping_path", mapping_path,
-        "--unresolved_dir", unresolved_dir
-    ]
-    print(f"正在运行 OCR 处理: {' '.join(cmd)}")
-    try:
-        # 根据字体大小，超时时间可能需要调大（例如 600 秒）
-        result = subprocess.run(cmd, check=True, timeout=600, )
-        print("OCR 输出:", result.stdout)
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"OCR 进程错误 (code {e.returncode}): {e.stderr}")
-        return False
-    except subprocess.TimeoutExpired:
-        print("OCR 处理超时")
-        return False
-    except Exception as e:
-        print(f"调用 OCR 时发生异常: {e}")
-        return False
-
-
 async def main():
     text = ""
     """主协程：遍历所有章节，解密内容"""
@@ -148,7 +116,7 @@ async def main():
         # 如果映射表不存在，则调用 PaddleOCR 生成
         if not os.path.exists(mapping_path):
             print(f"映射表不存在，开始构建: {mapping_path}")
-            success = build_mapping_with_paddleocr(font_path, mapping_path, unresolved_dir)
+            success = process_font_with_ddddocr(font_path, mapping_path, unresolved_dir)
 
             if success:
                 # 读取刚生成的映射表
@@ -175,7 +143,7 @@ async def main():
 
         # 解密文本
         try:
-            plain_text = decode_font.decrypt_text(mapping_path, encrypted_text)
+            plain_text = decrypt_text(mapping_path, encrypted_text)
             print(f"标题: {title}")
             print(f"解密后内容预览: {plain_text}")
             text += plain_text

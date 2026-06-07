@@ -7,6 +7,45 @@
 import subprocess
 import json
 from pathlib import Path
+import os
+
+# Python 3.10 环境配置
+PY310_PYTHON = r"D:\Miniconda3\envs\paddle_gpu\python.exe"
+# ocr_worker.py 的路径
+WORKER_SCRIPT = os.path.join(os.path.dirname(__file__), r"E:\crawler\ocr_worker.py")
+
+def build_mapping_with_paddleocr(font_path, mapping_path, unresolved_dir):
+    """调用 Python 3.10 环境中的 ocr_worker.py 生成映射表"""
+    # 确保必要的脚本存在
+    if not os.path.exists(PY310_PYTHON):
+        raise FileNotFoundError(f"Python 3.10 解释器不存在: {PY310_PYTHON}")
+    if not os.path.exists(WORKER_SCRIPT):
+        raise FileNotFoundError(f"ocr_worker.py 脚本不存在: {WORKER_SCRIPT}")
+
+    cmd = [
+        PY310_PYTHON,
+        WORKER_SCRIPT,
+        "--font_path", font_path,
+        "--mapping_path", mapping_path,
+        "--unresolved_dir", unresolved_dir
+    ]
+    print(f"正在运行 OCR 处理: {' '.join(cmd)}")
+    try:
+        # 根据字体大小，超时时间可能需要调大（例如 600 秒）
+        result = subprocess.run(cmd, check=True, timeout=600, )
+        print("OCR 输出:", result.stdout)
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"OCR 进程错误 (code {e.returncode}): {e.stderr}")
+        return False
+    except subprocess.TimeoutExpired:
+        print("OCR 处理超时")
+        return False
+    except Exception as e:
+        print(f"调用 OCR 时发生异常: {e}")
+        return False
+
+
 
 def find_worker_script():
     """从多个可能位置查找 ocr_worker.py"""

@@ -37,7 +37,6 @@ def get_html(url):
         response = requests.get(url, params=params,headers=HEADERS)
         html = response.text
         print(f"第{i+1}页")
-        print(response.url)
         yield html
 
 
@@ -72,9 +71,6 @@ def get_article_node(html):
 
 
 async def get_content(article):
-
-    movie_list = []
-
     name = article.xpath('.//span[@class="movie-name-label cipher-title-text"]/text()').get()
     score_math = article.xpath('.//span[@class="movie-rating-badge cipher-number"]/text()').get()
 
@@ -117,9 +113,7 @@ async def main():
 
     for html in get_html(base_url):
         for article in get_article_node(html):
-
             data = await get_content(article)
-
             moves_list.append(data)
 
     print(len(moves_list))

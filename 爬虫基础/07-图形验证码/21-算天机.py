@@ -9,9 +9,15 @@ from urllib.parse import urljoin
 import aiohttp
 import requests
 import json
+from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorClient
 
 token = json.load(open("token.json", "r", encoding="utf-8"))["token"]
+MONGO_URI = "mongodb://crawler:crawler123@192.168.1.25:27017"
+MONGO_DB = "spiders"
+MONGO_COL = "Patent_21"
 
+
+# 异步网络请求
 async def fetch(url,session, sem:asyncio.Semaphore,page,captcha_answer,headers):
     params = {'page': page}
     if page == 1:
@@ -31,6 +37,7 @@ async def fetch(url,session, sem:asyncio.Semaphore,page,captcha_answer,headers):
             print(f"请求失败 {url}: {e}")
             return None, None
 
+# 下载验证码图片
 async def download_and_ocr(full_url, sem:asyncio.Semaphore,session, headers):
     if not full_url:
         return None
@@ -46,6 +53,7 @@ async def download_and_ocr(full_url, sem:asyncio.Semaphore,session, headers):
             print(f"验证码下载失败: {e}")
             return None
 
+# 识别验证码
 async def verify(base64_img):
     if not base64_img:
         return None
@@ -63,14 +71,37 @@ async def verify(base64_img):
     return response["data"]["data"]
 
 
+# 创建数据库索引
+async def create_indexes(index,motor_client):
+    collection = motor_client[MONGO_DB][MONGO_COL]
+    await collection.create_index(index, unique=True)
+
+# 数据存储
+async def save_chapter_mongo(
+    collection: AsyncIOMotorCollection,
+    chapter: dict,
+    index:str
+):
+    """异步入库：基于 index 去重更新（upsert）"""
+    await collection.update_one(
+        {index: chapter[index]},
+        {'$set': chapter},
+        upsert=True
+    )
+    print(f"已入库：{chapter[index]}")
+
 async def main():
     filtered_list = []
     page = 1  # 当前要抓取的页码，从第 1 页开始
     text = ''  # 用于存储上一次识别出的验证码答案（字符串），初次为空
-    base_url = 'https://tc.xfei.tech/playground/trademark-opposition/ZW823fJKaj8Sf8NrQCI/zh/api/records'
+    base_url = 'https://tc.xfei.tech/playground/trademark-opposition/ZW823fJKakWp_zktx-I/zh/api/records'
     headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36',
     }
+
+    motor_client = AsyncIOMotorClient(MONGO_URI)
+    collection = motor_client[MONGO_DB][MONGO_COL]
+    await create_indexes('record_id',motor_client)
 
     sem = asyncio.Semaphore(10)
     async with aiohttp.ClientSession() as session:
@@ -101,6 +132,8 @@ async def main():
                 continue  # 重试当前页
 
             # 成功获取数据（items 可能为空列表）
+            for item in items:
+                await save_chapter_mongo(collection,item,'record_id')
             # 过滤符合条件的条目
             filtereds = [
                 item for item in items
@@ -117,6 +150,7 @@ async def main():
                 if captcha_text:
                     text = captcha_text  # 仅当识别成功才更新
                 else:
+
                     print("下一页验证码识别失败，将使用旧答案（可能导致重试）")
             else:
                 print("下一页验证码下载失败，将使用旧答案")

@@ -9,7 +9,7 @@ from bson import ObjectId
 
 client = pymongo.MongoClient("mongodb://crawler:crawler123@192.168.1.25:27017")
 db = client.spiders # client["spiders"]
-collection = db.movies # db["movies"]
+collection = db.tenderin_20 # db["movies"]
 
 movie1 = {
     "id":1,
@@ -39,12 +39,12 @@ movie3 = {
 # print(res.inserted_ids,res.acknowledged)
 
 # 查
-res = collection.find_one({'id': 1})
-print(res)
-res = collection.find_one({'_id':ObjectId('6a0dce0b2d3e67034dd5053c')})
-print(res)
-res = collection.find_one({'title':'肖申克的救赎'})
-print(res)
+# res = collection.find_one({'id': 1})
+# print(res)
+# res = collection.find_one({'_id':ObjectId('6a0dce0b2d3e67034dd5053c')})
+# print(res)
+# res = collection.find_one({'title':'肖申克的救赎'})
+# print(res)
 # 查多条
 # res = collection.find({'title':'肖申克的救赎'})
 # print(res.next())

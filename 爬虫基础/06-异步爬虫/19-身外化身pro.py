@@ -48,8 +48,8 @@ async def fetch(
                 html = await resp.text()
                 return status, html, url
         except Exception as e:
-            print(f"请求失败 {url}: {e}")
-            return None, None,url
+                print(f"请求失败 {url}: {e}")
+                return None, None,url
 
 
 # 获取内容url、下一页url

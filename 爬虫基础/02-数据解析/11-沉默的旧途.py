@@ -33,7 +33,7 @@ with httpx.Client(http2=True) as client:
         }
         data_list.append(data)
 
-best = max(data_list, key=lambda x: x["rating"])    # max(列表, key=lambda 每个元素: 按哪个字段比大小)
+best = max(data_list, key=lambda x: x["rating"])    # max(列表, key.json=lambda 每个元素: 按哪个字段比大小)
 
 print("最高分电影：", best)
 print("编号：", best["movie_rank"])

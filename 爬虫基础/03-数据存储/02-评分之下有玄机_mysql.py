@@ -26,7 +26,7 @@ conn = pymysql.connect(host="192.168.1.25",user="crewler_user",passwd="Mysql1234
 cursor = conn.cursor()
 sql = """
 CREATE TABLE IF NOT EXISTS movies (
-    id INT NOT NULL AUTO_INCREMENT primary key,
+    id INT NOT NULL AUTO_INCREMENT primary key.json,
     movie_id INT NOT NULL unique,
     title VARCHAR(255) NOT NULL,
     genres VARCHAR(255) NOT NULL,
@@ -76,7 +76,7 @@ for item in items:
 # conn = pymysql.connect(host="192.168.1.25",user="crewler_user",passwd="Mysql1234@",port=3306,db="spiders")
 # cursor = conn.cursor()
 # sql = f"""
-# insert into movies (id,title,rating) values (%s,%s,%s) on duplicate key update title = values(title),rating = values(rating) ;
+# insert into movies (id,title,rating) values (%s,%s,%s) on duplicate key.json update title = values(title),rating = values(rating) ;
 # """
 # try:
 #     cursor.execute(sql,(id,title,rating))
@@ -124,7 +124,7 @@ for item in items:
     conn = pymysql.connect(host="192.168.1.25",user="crewler_user",passwd="Mysql1234@",port=3306,db="spiders")
     cursor = conn.cursor()
     sql = f"""
-    insert into movies ({keys_str}) values ({value_placeholder}) on duplicate key update {update_srt} ;
+    insert into movies ({keys_str}) values ({value_placeholder}) on duplicate key.json update {update_srt} ;
     """
     try:
         cursor.execute(sql,values)

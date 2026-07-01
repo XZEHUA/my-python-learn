@@ -4,6 +4,8 @@
 # @Date: 2026/6/1 22:51
 # @Desc:
 import json
+from motor.motor_asyncio import AsyncIOMotorCollection
+
 
 headers = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -56,4 +58,23 @@ def decrypt_text(mapping_path, encrypted_str):
             real_char = mapping.get(hex_key, ch)
             result.append(real_char)
         return ''.join(result)
+
+
+# 创建数据库索引
+async def create_indexes(index,collection):
+    await collection.create_index(index, unique=True)
+
+# 数据存储
+async def save_chapter_mongo(
+    collection: AsyncIOMotorCollection,
+    chapter: dict,
+    index:str
+):
+    """异步入库：基于 index 去重更新（upsert）"""
+    await collection.update_one(
+        {index: chapter[index]},
+        {'$set': chapter},
+        upsert=True
+    )
+    print(f"已入库：{chapter[index]}")
 

@@ -16,7 +16,7 @@ from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorClient
 MONGO_URI = "mongodb://crawler:crawler123@192.168.1.25:27017"
 MONGO_DB = "spiders"
 MONGO_COL = "Job_hunting_22"
-token = json.load(open(r"token.json","r",encoding='utf-8'))["token"]
+token = json.load(open(r"token.json", "r", encoding='utf-8'))["token"]
 print(token)
 
 # 图片转base_64编码
@@ -57,7 +57,7 @@ async def fetch_data(url, session, sem, params, headers):
     async with sem:
         # 判断是否为图片url
         if not "image" in url:
-            # 获取验证码
+            # 数据接口
             try:
                 async with session.get(url,params=params,headers=headers) as resp:
                     data = await resp.json()
@@ -65,7 +65,7 @@ async def fetch_data(url, session, sem, params, headers):
             except Exception as e:
                 print(f"请求失败 {url}: {e}")
         else:
-            # 数据接口
+            # 获取验证码图片
             try:
                 async with session.get(url,params=params,headers=headers) as resp:
                     data = await resp.read()
@@ -101,6 +101,8 @@ async def save_chapter_mongo(
         upsert=True
     )
     print(f"已入库：{chapter[index]}")
+
+
 async def main():
     motor_client = AsyncIOMotorClient(MONGO_URI)
     collection = motor_client[MONGO_DB][MONGO_COL]

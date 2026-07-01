@@ -16,7 +16,7 @@ from motor.motor_asyncio import AsyncIOMotorCollection, AsyncIOMotorClient
 MONGO_URI = "mongodb://crawler:crawler123@192.168.1.25:27017"
 MONGO_DB = "spiders"
 MONGO_COL = "ticket_inquiry_23"
-token = json.load(open("token.json"))["token"]
+token = json.load(open(r"token.json", "r", encoding='utf-8'))["token"]
 
 async def fetch(session,sem,url,params,headers):
     '''
